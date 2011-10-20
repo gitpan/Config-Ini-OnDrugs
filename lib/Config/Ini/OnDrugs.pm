@@ -14,7 +14,7 @@ use File::chdir;
 
 our @EXPORT_OK = qw();
 
-our $VERSION = '0.04'; # VERSION
+our $VERSION = '0.05'; # VERSION
 
 use constant {
     COL_RAW     => 0,
@@ -150,16 +150,19 @@ sub _include {
     if ($eval_err) {
         $self->_dieline("Can't load file $filename: $eval_err");
     }
-    push @CWD, $dir if length($dir);
-    local $self->{_curline};
-    local $self->{_curfile} = $absfilename;
-    push @{$self->{_include_stack}}, $absfilename;
-    $self->{_include_level}++;
-    $self->_parse_raw($ct);
-    $self->{_include_level}--;
-    pop @{$self->{_include_stack}};
-
-    pop @CWD if length($dir);
+    {
+        my $tmp = sub {
+            local $self->{_curline};
+            local $self->{_curfile} = $absfilename;
+            push @{$self->{_include_stack}}, $absfilename;
+            $self->{_include_level}++;
+            $self->_parse_raw($ct);
+            $self->{_include_level}--;
+            pop @{$self->{_include_stack}};
+        };
+        $CWD = $dir if length($dir);
+        $tmp->();
+    }
 }
 
 sub dirmeta_include { {phase=>1} }
@@ -372,7 +375,7 @@ Config::Ini::OnDrugs - Yet another INI reader/writer (round trip, includes, vari
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 SYNOPSIS
 
