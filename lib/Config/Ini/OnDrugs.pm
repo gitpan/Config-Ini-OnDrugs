@@ -14,7 +14,7 @@ use File::chdir;
 
 our @EXPORT_OK = qw();
 
-our $VERSION = '0.03'; # VERSION
+our $VERSION = '0.04'; # VERSION
 
 use constant {
     COL_RAW     => 0,
@@ -372,7 +372,7 @@ Config::Ini::OnDrugs - Yet another INI reader/writer (round trip, includes, vari
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 

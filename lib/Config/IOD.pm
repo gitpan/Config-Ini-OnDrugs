@@ -1,4 +1,5 @@
 use Package::Alias 'Config::IOD' => 'Config::Ini::OnDrugs';
+use Config::Ini::OnDrugs;
 package Config::IOD; # to make PodWeaver happy
 1;
 #ABSTRACT: Alias for Config::Ini::OnDrugs
@@ -12,7 +13,7 @@ Config::IOD - Alias for Config::Ini::OnDrugs
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 AUTHOR
 
