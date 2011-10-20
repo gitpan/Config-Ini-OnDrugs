@@ -6,9 +6,17 @@ MANIFEST.SKIP
 META.yml
 README
 dist.ini
+lib/Config/IOD.pm
 lib/Config/Ini/OnDrugs.pm
 t/00-compile.t
 t/01-basics.t
+t/examples/include/dir/included.ini
+t/examples/include/included.ini
+t/examples/include/includer.ini
+t/examples/include/notfound.ini
+t/examples/include/recursive/a.ini
+t/examples/include/recursive/b.ini
+t/examples/include/recursive/c.ini
 t/examples/simple.ini
 t/parse-quoted.t
 t/release-pod-coverage.t

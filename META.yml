@@ -15,10 +15,11 @@ meta-spec:
 name: Config-Ini-OnDrugs
 requires:
   Exporter::Lite: 0
+  Package::Alias: 0
   Sub::Spec: 1.0.4
   Test::More: 0.96
   perl: 5.010000
 resources:
   homepage: http://search.cpan.org/dist/Config-Ini-OnDrugs/
   repository: http://github.com/sharyanto/perl-Config-Ini-OnDrugs
-version: 0.01
+version: 0.02

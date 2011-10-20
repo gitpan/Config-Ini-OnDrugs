@@ -3,13 +3,12 @@ NAME
     includes, variables, nest)
 
 VERSION
-    version 0.01
+    version 0.02
 
 SYNOPSIS
      # oo interface
-     use File::Slurp;
      use Config::Ini::OnDrugs;
-     my $ini = Config::Ini::OnDrugs->new(scalar read_file("file.ini"));
+     my $ini = Config::Ini::OnDrugs->new(file => "file.ini");
      my $section = $ini->get_section("Section"); # a hashref of param=>values
      my $val = $ini->get_value("Section", "Parameter");
 
@@ -25,8 +24,8 @@ SYNOPSIS
      # dump back as string
      $ini->as_string;
 
-     # procedural interface
-     use Config::Ini::OnDrugs qw(
+     # procedural interface, Config::IOD is a shorter alias
+     use Config::IOD qw(
          ini_get
          ini_get_section
          ini get_value
@@ -180,7 +179,8 @@ INI::OD FORMAT SPECIFICATION
     \t (tab), \b (backspace), \a (bell), \0, octal form ("\0377"), hex form
     ("\xff") and wide-hex form (\x{263a}).
 
-    Quoting is allowed for section name in section line,
+    Quoting is allowed for section name in section line and for parameter
+    name and value in parameter line.
 
   Includes
     You can include another file using the !include directive:
@@ -257,13 +257,6 @@ INI::OD FORMAT SPECIFICATION
 METHODS
 FUNCTIONS
     None are exported by default, but they are exportable.
-
-  a(%args) -> [STATUS_CODE, ERR_MSG, RESULT]
-    Returns a 3-element arrayref. STATUS_CODE is 200 on success, or an error
-    code between 3xx-5xx (just like in HTTP). ERR_MSG is a string containing
-    error message, RESULT is the actual result.
-
-    No known arguments at this time.
 
 FAQ
   Why use INI format for configuration files?
