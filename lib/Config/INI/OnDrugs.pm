@@ -1,5 +1,5 @@
-use Package::Alias 'Config::IOD' => 'Config::Ini::OnDrugs';
-package Config::IOD; # to make PodWeaver happy
+use Package::Alias 'Config::INI::OnDrugs' => 'Config::Ini::OnDrugs';
+package Config::INI::OnDrugs; # to make PodWeaver happy
 1;
 #ABSTRACT: Alias for Config::Ini::OnDrugs
 
@@ -8,7 +8,7 @@ __END__
 
 =head1 NAME
 
-Config::IOD - Alias for Config::Ini::OnDrugs
+Config::INI::OnDrugs - Alias for Config::Ini::OnDrugs
 
 =head1 VERSION
 

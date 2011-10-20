@@ -6,6 +6,7 @@ MANIFEST.SKIP
 META.yml
 README
 dist.ini
+lib/Config/INI/OnDrugs.pm
 lib/Config/IOD.pm
 lib/Config/Ini/OnDrugs.pm
 t/00-compile.t
