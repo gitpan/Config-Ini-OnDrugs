@@ -14,7 +14,7 @@ use File::chdir;
 
 our @EXPORT_OK = qw();
 
-our $VERSION = '0.05'; # VERSION
+our $VERSION = '0.06'; # VERSION
 
 use constant {
     COL_RAW     => 0,
@@ -127,7 +127,11 @@ sub _split_args {
 
 sub _include {
     my ($self, $filename) = @_;
-    $log->tracef("Including %s ...", $filename);
+    if (@{$self->{_include_stack}}) {
+        $log->tracef("Including %s ...", $filename);
+    } else {
+        $log->tracef("Loading INI configuration %s ...", $filename);
+    }
     my $absfilename = abs_path($filename);
     (-f $filename) && $absfilename or
         $self->_dieline("Can't load file $filename: not found (cwd=".
@@ -375,7 +379,7 @@ Config::Ini::OnDrugs - Yet another INI reader/writer (round trip, includes, vari
 
 =head1 VERSION
 
-version 0.05
+version 0.06
 
 =head1 SYNOPSIS
 

@@ -17,13 +17,14 @@ my %module_build_args = (
     'Steven Haryanto <stevenharyanto@gmail.com>'
   ],
   'dist_name' => 'Config-Ini-OnDrugs',
-  'dist_version' => '0.05',
+  'dist_version' => '0.06',
   'license' => 'perl',
   'module_name' => 'Config::Ini::OnDrugs',
   'recommends' => {},
   'recursive_test_files' => 1,
   'requires' => {
     'Exporter::Lite' => '0',
+    'File::Slurp' => '0',
     'Package::Alias' => '0',
     'Sub::Spec' => '1.0.4',
     'Test::More' => '0.96',
