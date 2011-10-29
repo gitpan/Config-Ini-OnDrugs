@@ -17,7 +17,7 @@ my %module_build_args = (
     'Steven Haryanto <stevenharyanto@gmail.com>'
   ],
   'dist_name' => 'Config-Ini-OnDrugs',
-  'dist_version' => '0.06',
+  'dist_version' => '0.07',
   'license' => 'perl',
   'module_name' => 'Config::Ini::OnDrugs',
   'recommends' => {},
@@ -25,6 +25,7 @@ my %module_build_args = (
   'requires' => {
     'Exporter::Lite' => '0',
     'File::Slurp' => '0',
+    'File::chdir' => '0',
     'Package::Alias' => '0',
     'Sub::Spec' => '1.0.4',
     'Test::More' => '0.96',
