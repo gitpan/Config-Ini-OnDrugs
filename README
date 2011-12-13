@@ -3,7 +3,7 @@ NAME
     includes, variables, nest)
 
 VERSION
-    version 0.07
+    version 0.08
 
 SYNOPSIS
      # oo interface
@@ -41,8 +41,9 @@ SYNOPSIS
      ...
 
 DESCRIPTION
-    IMPLEMENTATION NOTE: PRELIMINARY VERSION, SPEC MIGHT STILL CHANGE ONE OR
-    TWO BITS. ONLY GET_SECTION() AND GET_PARAM() IS IMPLEMENTED.
+    WARNING: THIS MODULE IS NOT FUNCTIONAL, PLEASE DO NOT USE IT. I AM STILL
+    REVISING THE SPECIFICATION, IMPLEMENTATION IS STILL VERY
+    MINIMAL/PARTIAL.
 
     This module provides INI reading/writing class/functions. There are
     several other INI modules on CPAN; this one focuses on round trip
@@ -81,17 +82,25 @@ DESCRIPTION
     mentions the phrase "round trip", but it uses the phrase to mean
     integrity of values, not preserving comments/whitespaces.)
 
-INI::OD FORMAT SPECIFICATION
+IOD FORMAT SPECIFICATION
     Since the INI format does not have any formal specification, here is the
-    specification for INI as used by this module (from here on: Ini::OD).
-    Ini::OD is specified to be compatible with most of the INI files out
-    there, while also introduce several useful extensions.
+    specification for INI as used by this module (from here on: IOD). IOD is
+    an extended INI format. If you don't use any extended features, your IOD
+    file is a plain INI file.
 
-    An INI file is a text file containing either comment lines, directive
-    lines, blank lines, section lines, and parameter lines.
+    A configuration text file containing a sequence of lines, each line is
+    either a blank line, a comment line, a directive line, a section line,
+    or a parameter line. Parsing is done line-by-line and in one pass.
+
+  Blank line
+    A blank line is a line containing zero or more whitespaces only. It is
+    ignored.
 
   Comment line
-    A comment line begins with ; or # as it's first nonblank character.
+    A comment line begins with ; or # as it's first nonblank character (note
+    that some INI parsers do not allow indented comment). The use of ; is
+    preferred over #, as some INI parsers (like one in PHP 5.3+) do not
+    recognize or warn comments using #.
 
   Directive line
     A directive line is a special comment line, starting with an exclamation
@@ -99,11 +108,111 @@ INI::OD FORMAT SPECIFICATION
     invalid directive will be ignored and assumed to be a normal command
     (with warnings).
 
-     #!directivename
      ;!directivename arg ...
 
-    Directives influence parsing and turn on/off features. Known directives
-    will be explained later in the text.
+    Directives influence parsing and turn on/off features.
+
+    Below is the list of known directives:
+
+   !include <PATH>
+    Include another file, as if the content of the included file is the next
+    lines in the current file. If PATH is not absolute, it is assumed to be
+    relative to the current file (or included file). A circular include will
+    cause the parser to die with an error. Example:
+
+    File dir1/a.ini: [sectionA] [sub1] a=1 ;!include ../dir2/b.ini
+
+    File dir2/b.ini:
+
+        b=2
+     ;dedent
+
+    File dir2/b2.ini: c := 2+1
+
+    File dir2/b3.ini: c=4 [sectionB] c=1
+
+    Will parsed, will result in this configuration:
+
+     {
+         sectionA => {
+             sub1 => {
+                 a => 1,
+                 b => 2,
+                 c => [3, 4],
+             },
+         },
+         sectionB => {
+             c => 1,
+         },
+     }
+
+   !defaults <SECTION> <SECTION2> ...
+    Specify that from now on, when encountering a new section, fill it with
+    values from SECTION (and then SECTION2, and so on) unless the values are
+    already specified.
+
+    Example:
+
+     [sect1]
+     a=1
+     b=2
+
+     ;!defaults sect1
+
+     [sect2]
+     a=10
+
+     [sect3]
+     c=1
+
+     [sect4]
+     a=0
+     b:=undef
+
+    Will result in:
+
+     {sect1 => {a=>1, b=>2},
+      sect2 => {a=>10, b=>2},
+      sect3 => {a=>1, b=>2, c=>1},
+      sect4 => {a=>0, b=>undef},
+
+    Another, more meaty example:
+
+     [-defaults]
+     quota=1000
+     ftp=1
+     shell=1
+     mysql=0
+
+     ;!defaults -defaults
+
+     ; double quota for this user
+     [user1]
+     quota=2000
+
+     ; disable ftp for this user
+     [user2]
+     ftp=0
+
+     ; all admin users have unlimited quota
+     [-admins]
+     quota=-1
+
+     ;!defaults -admins
+
+     [admin1]
+
+     ; this admin cannot use shell
+     [admin2]
+     shell=0
+
+     ;no more defaults
+     ;!defaults
+
+    Defaults to the same section is ignored.
+
+   !merge
+    Mode-merging using Data::ModeMerge. Details to be specified later.
 
   Section line
     A section line introduces a section:
@@ -113,12 +222,86 @@ INI::OD FORMAT SPECIFICATION
      []
      [""]
 
-    Whitespace before the "[" token is allowed. To write a section name with
-    problematic characters (like "\n", "\0", "]", etc.), use quotes.
+    Comment is allowed at the end. To write a section name with problematic
+    characters (like "\n", "\0", "]", etc.), use quotes.
 
-    Ini::OD allows nested section using this syntax:
+    To specify nested section, you indent the subsection line relative to
+    section line (minimum is 1 whitespace):
 
-     [Outer][Inner][Even more inner]...
+     [Outer]
+       [Inner]
+         [Further Inner]
+           [a]
+           val=1
+           [b]
+     [c]
+     val=2
+
+    will result in:
+
+     {Outer => {
+         Inner => {
+             "Further Inner" => {
+                 a => {
+                     val => 1,
+                 },
+                 b => {
+                 },
+             },
+         },
+      c => {
+          val => 1,
+      },
+     },
+
+    Use of tab character is discouraged, but if exists as indentation it
+    will be counted as 1 whitespace. Parameter line needs to be indented at
+    least as its section:
+
+     [Section]
+       [Subsection]
+       a=1
+         b=2
+       c=3
+     d=4
+      e=5
+
+    In the above example, a, b, and c belong to Subsection will d and e
+    belong to Section.
+
+    Non-contiguous sections are allowed, they will be assumed to be set/add
+    parameters, e.g.:
+
+     [sect1]
+     a=1
+
+     [sect2]
+     a=1
+
+     [sect1]
+     a=2
+     b=3
+
+    will result in "sect1" containing "a" as [1, 2] and "b" as 3. However,
+    note:
+
+     [sect1]
+     a=1
+
+     ;!defaults sect1
+     [sect2]
+     d=4
+
+     [sect1]
+     b=2
+
+     [sect3]
+     c=3
+
+    "sect2" will contain {a=>1, d=>4} since at the point of parsing "sect2",
+    "sect1" only contains {a=>1}. However, "sect3" will contain {a=>1, b=>2,
+    c=>3} since at the point of parsing "sect3", "sect1" already becomes
+    {a=>1, b=>2}.
 
   Parameter line
     Parameter lines specify name value pairs:
@@ -130,48 +313,51 @@ INI::OD FORMAT SPECIFICATION
 
      "Contains\nnewline" = "\0"
 
-    Whitespace before parameter name, and whitespaces between the "="
-    character are allowed and ignored. Trailing whitespace is not ignored
-    for unquoted values.
+    Whitespace before parameter name is allowed and can be used to
+    enter/leave subsection (see "Subsection line"). Whitespaces between the
+    "=" character are allowed and ignored. Trailing whitespace is allowed
+    and ignored for quoted values but significant for unquoted values.
 
-    To specify an "undef" ("null") value, use expression:
+     a=1<space>
+     b="2"<space>
 
-     ;!expr
-     param1=undef
+    In the above example, value of "a" is "1" followed by a space, while
+    value of "b" is just "2".
 
-    To specify an array value, use multiple lines or expression:
+    Note that some INI parsers forbid some/all of these whitespaces.
+
+    Instead of "=" you can use ":=" to specify expression instead of literal
+    value. Expression is parsed by Language::Expr. Using expression, you can
+    specify a null (undefined) value:
+
+     param1 := undef
+
+    or alternative of writing arrays. Instead of:
 
      param=foo
      param=bar
 
-     ;!expr
-     param=["foo", "bar"]
+    you can write:
 
-    To specify an array with a single value:
+     param := ["foo", "bar"]
 
-     ;!expr
-     param=["foo"]
+    Using expression you can also specify an array with a single value (not
+    possible using "=").
 
-    To specify an array with an empty element:
+     param:=["foo"]
 
-     ;!expr
-     param=[]
+    You can also specify an empty array using expression:
 
-    To specify hash value, use nested section or an expression:
+     param:=[]
 
-     [Section]
-     ; param is {foo=>"1 ; a", bar=>"2"}
-     [Section][param]
-     foo=1 ; a
-     bar="2"
+    To escape ":" as part of parameter name, use quoting:
 
-     ;!expr
-     param={"foo" => 1, "bar" => 2}
+     "param:"="literal, not expression"
 
     Normally a parameter line should occur below section line, so that
     parameter belongs to the section. But a parameter line is also allowed
-    before section line, in which it will belong to the default section
-    specified in the parser.
+    before section line, in which it will belong to section called "DEFAULT"
+    (configurable via the parser's default_section attribute).
 
   Quoting
     Quoting is done with the double-quote (") character. Known escapes are
@@ -187,8 +373,10 @@ INI::OD FORMAT SPECIFICATION
 
      ;!include "/My Home/foo.ini"
 
+    See the documentation of the !include directive for more details.
+
   Variables and calculations
-    You can use variables and calculations using the !expr directive.
+    You can use variables and calculations using the expressions.
 
      ; param is 1+2+$a, literal
      param=1+2+$a
@@ -196,41 +384,62 @@ INI::OD FORMAT SPECIFICATION
      ; param is 5
      a=3
      b=4
-     ;!expr
-     param = ($a**2 + $b**2) ** 0.5
+     param := ($a**2 + $b**2) ** 0.5
 
      ; to refer to sections
      [Section1]
      lang="Perl"
 
      [Section2]
-     ;!expr
-     param="I love " + $CONFIG['Section1']['lang']
+     param:="I love " + $CONFIG['Section1']['lang']
 
     Note: since parsing is done in 1-pass, make sure that you define a
     parameter first before using it in expressions.
 
+  Specifying defaults
+    To avoid repetition, you can specify defaults in a section and then use
+    the values in that section for others. See documentation on the
+    !defaults directive for more details.
+
   Merging between sections
-    Directive !merge is used to merge sections.
+    To be specified later.
 
-     [default]
-     repeat=1
-     volume=100
+  Summary of extended features
+    Below is a summary of extended features provided by IOD over "standard"
+    INI format:
 
-     ;!merge default
-     [steven]
-     file=/home/steven/song1.mp3
-     repeat=2
+    *   Round-trip parsing
 
-     ;!merge default steven
-     [steven, car]
-     file=/home/steven/song2.mp3
-     volume=30
+    *   Quoting
+
+    *   Indented section line, comments after section line
+
+    *   Indented comment line
+
+    *   Whitespaces before parameter name, between =, after parameter value
+
+        Some INI parsers do not allow whitespaces at all.
+
+    *   # as comment character
+
+        Some strict INI parsers only recognize ";" as the comment starter.
+        If in doubt, always use ";".
+
+    *   Directives (e.g. include, defaults, merging)
+
+        Other INI parsers will see directive line as regular comment line.
+
+    *   Expressions
+
+        Other INI parsers will see:
+
+         param:=value
+
+        as { "param:" => "value" }.
 
   Unsupported features
     Some INI implementation support other features, and listed below are
-    those unsupported by Ini::OD, usually because the features are not
-    popular:
+    those unsupported by IOD, usually because the features are not popular:
 
     *   Line continuation for multiline value
 
@@ -238,7 +447,7 @@ INI::OD FORMAT SPECIFICATION
          line 2\
          line 3
 
-        Supported by Config::IniFiles. In Ini::OD, use quoting:
+        Supported by Config::IniFiles. In IOD, use quoting:
 
          param="line 1 \nline 2\nline 3"
 
@@ -249,10 +458,15 @@ INI::OD FORMAT SPECIFICATION
          value2
          EOT
 
-        Supported by Config::IniFiles. In Ini::OD, use multiple assignment:
+        Supported by Config::IniFiles. In IOD, use multiple assignment or
+        expression:
 
          param=value1
          param=value2
+
+        or:
+
+         param:=["value1", "value2"]
 
 METHODS
 FUNCTIONS
@@ -265,12 +479,29 @@ FAQ
     simplicity of INI format also makes it easier to write round trip parser
     for.
 
-  Were you on drugs?
+  Why use Config::Ini::OnDrugs (the IOD format) over standard INI files?
+    IOD supports several useful (to me, at least) extended features over
+    "standard" INI files, see "Summary of extended features".
+
+  Downsides of Config::Ini::OnDrugs (IOD format)?
+    *   Currently only has Perl parser
+
+        INI parsers exist everywhere though, so some of the time you can
+        fallback to INI.
+
+    *   You need to learn another minilanguage for expressions
+
+        It's very similar to Perl though. See Language::Expr.
+
+    *   Expression parser is still slowish
+
+        I plan to fix this in the future (e.g. by switching parser to
+        Marpa).
+
+  Why the name? Were you on drugs?
     Sorry, no.
 
 SEE ALSO
-    Expression evaluation is done using Language::Expr.
-
     Other INI modules: Config::IniFiles, Config::INI, Config::INIPlus, etc.
 
     Other alternative formats: YAML, JSON, Config::General, XML, etc.
@@ -291,4 +522,11 @@ COPYRIGHT AND LICENSE
 
     This is free software; you can redistribute it and/or modify it under
     the same terms as the Perl 5 programming language system itself.
+
+POD ERRORS
+    Hey! The above document had some coding errors, which are explained
+    below:
+
+    Around line 911:
+        You forgot a '=back' before '=head2'
 

@@ -13,7 +13,7 @@ Config::INI::OnDrugs - Alias for Config::Ini::OnDrugs
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 AUTHOR
 
